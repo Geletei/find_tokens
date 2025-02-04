@@ -1,0 +1,14 @@
+*.pyc
+__pycache__/
+.DS_Store
+.idea/
+
+.env
+.venv
+venv/
+env/
+ENV/
+
+wallets.txt
+report.txt
+result.txt
