@@ -385,5 +385,4 @@ async def main():
 
 
 if __name__ == '__main__':
-    # print('{:.9f}'.format(round(1.7500 % 0.0005), 4))
     asyncio.run(main())
