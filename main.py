@@ -136,7 +136,7 @@ async def evm():
         if not rpcs:
             print("Custom RPC not found :(")
             return
-        web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpcs))
+        web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpcs, request_kwargs={'proxy': 'http://ps129168:4UUbPVthCo@141.11.252.36:8000'}))
 
         if not await web3.is_connected():
             print("RPC doesn't work :(")
@@ -290,7 +290,7 @@ async def sui():
                 if obj.bcs['type'] == token_for_check:
                     symbol = obj.display.data['name']
                     return None, symbol
-            return None
+            return None, 'None'
 
     for i, wallet in enumerate(wallets):
         n = str(i + 1)
@@ -326,6 +326,7 @@ async def sui():
             price = 1
         else:
             price = await get_price(symbol)
+
         info["0"]["price"] = price
 
         if check_native or (not check_native and not nft):
