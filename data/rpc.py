@@ -76,5 +76,4 @@ EVM_RPC = {
 
 OTHER_RPC = {
   'Starknet': 'https://starknet-mainnet.public.blastapi.io',
-  'Sui': 'https://sui-rpc.publicnode.com',
 }

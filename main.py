@@ -8,9 +8,6 @@ import os
 
 from web3 import Web3
 from web3 import AsyncWeb3
-from pysui.sui.sui_config import SuiConfig
-from pysui.sui.sui_types.address import SuiAddress
-from pysui.sui.sui_clients.sync_client import SuiClient
 from starknet_py.net.full_node_client import FullNodeClient
 from starknet_py.net.client_errors import ClientError
 from starknet_py.net.client_models import Call
@@ -263,85 +260,6 @@ async def stark():
 
     await display_info(write=True)
 
-
-async def sui():
-    await set_data()
-    await display_info()
-
-    async def get_symbol(object=None):
-        if check_native or (not check_native and not nft):
-            payload = json.dumps({
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "suix_getCoinMetadata",
-                "params": [
-                    token_for_check if not check_native else '0x2::sui::SUI'
-                ]
-            })
-            headers = {
-                'Content-Type': 'application/json'
-            }
-            response = requests.request("POST", OTHER_RPC['Sui'], headers=headers, data=payload)
-            decimal = response.json()['result']['decimals']
-            symbol = response.json()['result']['symbol']
-            return decimal, symbol
-        else:
-            for obj in object:
-                if obj.bcs['type'] == token_for_check:
-                    symbol = obj.display.data['name']
-                    return None, symbol
-            return None, 'None'
-
-    for i, wallet in enumerate(wallets):
-        n = str(i + 1)
-        sui_config = SuiConfig.user_config(rpc_url=OTHER_RPC['Sui'])
-        sui_config.set_active_address(address=SuiAddress(wallet))
-
-        client = SuiClient(config=sui_config)
-        if check_native:
-            coin_objects = client.get_gas(address=sui_config.active_address, fetch_all=True).result_data
-        else:
-            if nft:
-                coin_objects = client.get_objects(address=sui_config.active_address, fetch_all=True).result_data
-            else:
-                coin_objects = client.get_coin(coin_type=token_for_check, address=sui_config.active_address, fetch_all=True).result_data
-
-        balance = 0
-        try:
-            coin_data = list(coin_objects.data)
-        except AttributeError:
-            print(Fore.RED + Style.BRIGHT + 'Проблема з гаманцем. Можливо не вірно вказано тип гаманця в settings.py' + Style.RESET_ALL)
-            return
-        for obj in coin_data:
-            if check_native or (not check_native and not nft):
-                balance += int(obj.balance)
-            else:
-                if obj.bcs['type'] == token_for_check:
-                    balance += 1
-
-        decimal, symbol = await get_symbol(coin_data if nft else None)
-        info["0"]["network"] = 'Sui'
-        info["0"]["token"] = symbol
-        if 'USDT' in symbol or 'USDC' in symbol or 'DAI' in symbol:
-            price = 1
-        else:
-            price = await get_price(symbol)
-
-        info["0"]["price"] = price
-
-        if check_native or (not check_native and not nft):
-            balance = round(balance / 10 ** decimal, 2)
-
-        info["0"]["total"] = round(info["0"]["total"] + float(balance), 7)
-        info[n]["nonce"] = None
-        info[n]["balance"] = 0 if float(balance) == 0 else ('{:.7f}'.format(round(float(balance), 7)) if float(balance) < 1 else '{:.4f}'.format(round(float(balance), 4)))
-        info[n]["bal_usd"] = round(float(balance * info["0"]["price"]), 3)
-        await display_info()
-        await asyncio.sleep(random.randint(*sleeping))
-
-    await display_info(write=True)
-
-
 async def report():
     delete = []
     new_total = 0
@@ -371,8 +289,6 @@ async def main():
             await evm()
         elif what == 'stark':
             await stark()
-        elif what == 'sui':
-            await sui()
         else:
             print(Fore.RED + Style.BRIGHT + 'Не вірно вказано тип гаманця в settings.py' + Style.RESET_ALL)
         if do_report:
