@@ -133,7 +133,7 @@ async def evm():
         if not rpcs:
             print("Custom RPC not found :(")
             return
-        web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpcs, request_kwargs={'proxy': 'http://ps129168:4UUbPVthCo@141.11.252.36:8000'}))
+        web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(rpcs))
 
         if not await web3.is_connected():
             print("RPC doesn't work :(")
