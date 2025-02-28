@@ -51,7 +51,7 @@ async def display_info(display=True, write=False, report=False):
     headers = ["#", "Wallet", "Tx Count", "Balance", "Balance USD"]
     table = [[k, i['wallet'], i['nonce'], i['balance'], i['bal_usd']] for k, i in info.items() if k != "0"]
     table.append(['━━━━━', '━'*len(wallets[0]), '━'*10, '━'*13, '━'*13])
-    table.append(['Total', '', '', round(info["0"]["total"], 7), round(round(info["0"]["total"] * info["0"]["price"], 3), 8)])
+    table.append(['Total', '', '', f'{info["0"]["total"]:.7f}', round(round(info["0"]["total"] * info["0"]["price"], 3), 8)])
 
     final_table = tabulate(table, headers, tablefmt='mixed_outline', stralign='center', numalign='center')
     if write:
@@ -103,9 +103,12 @@ async def get_price(token):
     return price
 
 
-async def wallet_data(i, wallet, web3, contract, decimal):
-    web3.provider = AsyncWeb3.AsyncHTTPProvider(web3.provider.endpoint_uri, request_kwargs={"proxy": info[i]["proxy"]})
-    await asyncio.sleep(random.randint(*sleeping))
+async def wallet_data(i, wallet, w3, contract, decimal):
+    web3 = AsyncWeb3(AsyncWeb3.AsyncHTTPProvider(w3.provider.endpoint_uri, request_kwargs={"proxy": info[i]["proxy"]}))
+    try:
+        await web3.provider.is_connected()
+    except aiohttp.ClientResponseError:
+        return
     try:
         public = Web3.to_checksum_address(wallet)
     except ValueError:
@@ -237,9 +240,13 @@ async def stark():
     for i, wallet in enumerate(wallets):
         n = str(i + 1)
         if use_proxy:
-            session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(), trust_env=True)
-            session._default_headers = {"proxy": proxies[i]}
+            session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(), trust_env=True, proxy=proxies[i])
             client = FullNodeClient(node_url=OTHER_RPC['Starknet'], session=session)
+            try:
+                await client.get_chain_id()
+            except aiohttp.ClientResponseError as e:
+                await session.close()
+                continue
         try:
             nonce = await client.get_contract_nonce(wallet)
         except ClientError:
