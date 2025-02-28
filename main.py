@@ -2,6 +2,7 @@ import random
 import requests
 import platform
 import asyncio
+import aiohttp
 import ast
 import json
 import os
@@ -21,17 +22,27 @@ from settings import *
 
 clear_text = 'cls' if platform.system().lower() == 'windows' else 'clear'
 
+wallets = []
+proxies = []
 info = {}
 
 with open('data/abi.json') as file:
     abi = json.load(file)
 
-wallets = []
 with open('wallets.txt', 'r') as f:
     for row in f:
         wallet = row.strip()
         if wallet:
             wallets.append(wallet)
+
+if use_proxy:
+    with open('proxy.txt', 'r') as f:
+        for row in f:
+            proxy = row.strip()
+            if proxy:
+                if not proxy.startswith('http://'):
+                    proxy = 'http://' + proxy
+                proxies.append(proxy)
 
 
 async def display_info(display=True, write=False, report=False):
@@ -59,6 +70,7 @@ async def set_data():
     for num, wallet in enumerate(wallets):
         info[str(num+1)] = {
             "wallet" : wallet,
+            "proxy"  : proxies[num] if use_proxy else None,
             "nonce"  : "░░░░░",
             "balance": "░░░░░░░░░░░░░",
             "bal_usd": "░░░░░░░░░░░"
@@ -92,6 +104,7 @@ async def get_price(token):
 
 
 async def wallet_data(i, wallet, web3, contract, decimal):
+    web3.provider = AsyncWeb3.AsyncHTTPProvider(web3.provider.endpoint_uri, request_kwargs={"proxy": info[i]["proxy"]})
     await asyncio.sleep(random.randint(*sleeping))
     try:
         public = Web3.to_checksum_address(wallet)
@@ -223,6 +236,10 @@ async def stark():
 
     for i, wallet in enumerate(wallets):
         n = str(i + 1)
+        if use_proxy:
+            session = aiohttp.ClientSession(connector=aiohttp.TCPConnector(), trust_env=True)
+            session._default_headers = {"proxy": proxies[i]}
+            client = FullNodeClient(node_url=OTHER_RPC['Starknet'], session=session)
         try:
             nonce = await client.get_contract_nonce(wallet)
         except ClientError:
@@ -256,6 +273,8 @@ async def stark():
         info[n]["balance"] = 0 if human_readable == 0 else ('{:.7f}'.format(round(float(human_readable), 7)) if float(human_readable) < 1 else '{:.4f}'.format(round(float(human_readable), 4)))
         info[n]["bal_usd"] = round(float(human_readable * info["0"]["price"]), 3)
         await display_info()
+        if use_proxy:
+            await session.close()
         await asyncio.sleep(random.randint(*sleeping))
 
     await display_info(write=True)
@@ -284,6 +303,10 @@ async def report():
 
 
 async def main():
+    if use_proxy:
+        if len(wallets) != len(proxies):
+            print(Fore.RED + Style.BRIGHT + 'Якщо use_proxy = True, то кількість проксі має дорівнювати кількості гаманців.' + Style.RESET_ALL)
+            return
     try:
         if what == 'evm':
             await evm()

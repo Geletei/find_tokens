@@ -5,6 +5,7 @@ nft = False  # True | False
 token_for_check = '0x00000'
 custom_rpc = 'https://network.rpc'
 sleeping = (0, 30)
+use_proxy = True
 
 do_report = False  # True | False
 report_amount = 0.01
