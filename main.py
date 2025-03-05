@@ -170,9 +170,7 @@ async def evm():
         contract = web3.eth.contract(address=contract_address, abi=abi)
         try:
             symbol = await contract.functions.symbol().call()
-        except:
-            with open('data/abi_custom.json') as file:
-                abi = json.load(file)
+        except Exception:
             contract = web3.eth.contract(address=contract_address, abi=abi)
             symbol = None
         if not nft:
@@ -185,11 +183,15 @@ async def evm():
         except KeyError:
             pass
 
-    price = await get_price(symbol)
-    if 'USDT' in symbol or 'USDC' in symbol or 'DAI' in symbol:
-        price = 1
-    elif 'eth' in symbol.lower() and symbol != 'ETH':
-        price = await get_price('ETH')
+    if symbol is None:
+        price = 0
+    else:
+        price = await get_price(symbol)
+        if 'USDT' in symbol or 'USDC' in symbol or 'DAI' in symbol:
+            price = 1
+        elif 'eth' in symbol.lower() and symbol != 'ETH':
+            price = await get_price('ETH')
+
     info["0"]["token"] = symbol
     info["0"]["price"] = price
 
